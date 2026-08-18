@@ -59,6 +59,8 @@ data/**/*.parquet
 data/**/*.feather
 data/**/*.zip
 data/**/*.gz
+data/**/*.dta
+data/raw/**/*.txt
 *.db
 *.db-journal
 *.sqlite

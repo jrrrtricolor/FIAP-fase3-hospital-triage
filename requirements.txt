@@ -1,0 +1,29 @@
+# Python 3.11 ou 3.12
+
+# Dados e EDA
+numpy>=2.0,<3.0
+pandas>=2.2,<3.0
+matplotlib>=3.9,<4.0
+seaborn>=0.13,<0.14
+jupyterlab>=4.3,<5.0
+ipykernel>=6.29,<8.0
+nbconvert>=7.16,<8.0
+
+# Machine learning e experimentos
+scikit-learn>=1.5,<2.0
+joblib>=1.4,<2.0
+torch>=2.4,<3.0
+mlflow>=3.0,<4.0
+
+# API e observabilidade
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+prometheus-client>=0.21,<1.0
+
+# Versionamento do pipeline de dados
+dvc>=3.58,<4.0
+
+# Qualidade e testes
+pytest>=8.3,<10.0
+httpx>=0.27,<1.0
+ruff>=0.8,<1.0
