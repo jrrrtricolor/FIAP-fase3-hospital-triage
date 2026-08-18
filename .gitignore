@@ -1,0 +1,87 @@
+# Instruções locais dos agentes
+agents/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Ambientes virtuais e configuração local do Poetry
+.venv/
+venv/
+env/
+ENV/
+poetry.toml
+
+# Testes, lint, cobertura e notebooks
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.ipynb_checkpoints/
+
+# IDEs e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Segredos e configurações locais
+.env
+.env.*
+!.env.example
+kaggle.json
+*.pem
+*.key
+
+# Logs e processos locais
+*.log
+*.pid
+
+# Dados locais e bancos SQLite
+data/**/*.csv
+data/**/*.jsonl
+data/**/*.parquet
+data/**/*.feather
+data/**/*.zip
+data/**/*.gz
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Artefatos de modelos
+model/**/*.joblib
+model/**/*.pkl
+model/**/*.pickle
+model/**/*.pt
+model/**/*.pth
+model/**/*.onnx
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Airflow local
+airflow/logs/
+airflow/airflow.cfg
+airflow/standalone_admin_password.txt
+
+# Cache e configuração local do DVC
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
