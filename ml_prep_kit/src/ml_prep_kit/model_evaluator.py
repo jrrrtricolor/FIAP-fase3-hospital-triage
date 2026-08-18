@@ -13,7 +13,7 @@ from sklearn.metrics import (
 
 
 class ModelEvaluator:
-    """Calcula métricas consistentes para classificação binária ou multiclasse."""
+    """Calcula métricas para classificação binária ou multiclasse."""
 
     def evaluate_classification(
         self,

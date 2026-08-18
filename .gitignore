@@ -36,7 +36,8 @@ htmlcov/
 
 # IDEs e editores
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 *.swp
 *.swo
 

@@ -14,8 +14,12 @@ DATASET_URL = (
     "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Dataset_Documentation/"
     "NHAMCS/stata/ed2021-stata.zip"
 )
-ARCHIVE_SHA256 = "d1e33d8189077b6ad3271068f9765dd96c3affbfe628f2079611326968623e47"
-DATA_FILE_SHA256 = "c1438773d451c78652bf371fc369da5281aa2c82eb5983cccc2646b66d218038"
+ARCHIVE_SHA256 = (
+    "d1e33d8189077b6ad3271068f9765dd96c3affbfe628f2079611326968623e47"
+)
+DATA_FILE_SHA256 = (
+    "c1438773d451c78652bf371fc369da5281aa2c82eb5983cccc2646b66d218038"
+)
 DATA_FILE_NAME = "ed2021-stata.dta"
 ICD10CM_URL = (
     "https://www.cms.gov/files/zip/"
@@ -35,7 +39,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw" / "nhamcs" / DATASET_VERSION
 ARCHIVE_PATH = RAW_DATA_DIR / "ed2021-stata.zip"
 DATA_FILE_PATH = RAW_DATA_DIR / DATA_FILE_NAME
-REFERENCE_DATA_DIR = PROJECT_ROOT / "data" / "raw" / "references" / "icd10cm" / "2021"
+REFERENCE_DATA_DIR = (
+    PROJECT_ROOT / "data" / "raw" / "references" / "icd10cm" / "2021"
+)
 ICD10CM_ARCHIVE_PATH = REFERENCE_DATA_DIR / "icd10cm-2021-descriptions.zip"
 ICD10CM_FILE_PATH = REFERENCE_DATA_DIR / "icd10cm_order_2021.txt"
 

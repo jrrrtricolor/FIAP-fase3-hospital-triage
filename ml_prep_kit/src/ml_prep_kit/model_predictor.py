@@ -41,10 +41,11 @@ class ModelPredictor:
     ) -> "ModelPredictor":
         """Carrega um modelo por URI do MLflow.
 
-        ``model_uri`` aceita URIs de runs e do Model Registry, incluindo aliases
-        como ``models:/hospital_triage_text_classifier@champion``. Modelos
-        PyTorch com tokenização própria devem ser registrados como wrapper
-        Scikit-Learn ou modelo PyFunc para preservar o contrato de inferência.
+        ``model_uri`` aceita URIs de runs e do Model Registry, incluindo
+        aliases como ``models:/hospital_triage_text_classifier@champion``.
+        Modelos PyTorch com tokenização própria devem ser registrados como
+        wrapper Scikit-Learn ou modelo PyFunc para preservar o contrato de
+        inferência.
         """
         if tracking_uri:
             mlflow.set_tracking_uri(tracking_uri)
@@ -80,7 +81,9 @@ class ModelPredictor:
         model = self._require_model()
 
         if not hasattr(model, "predict_proba"):
-            raise AttributeError("O modelo carregado não implementa predict_proba().")
+            raise AttributeError(
+                "O modelo carregado não implementa predict_proba()."
+            )
 
         return model.predict_proba(self.prepare_input(X))
 

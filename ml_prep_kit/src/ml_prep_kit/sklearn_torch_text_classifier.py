@@ -72,7 +72,9 @@ class SklearnTorchTextClassifier(ClassifierMixin, BaseEstimator):
         targets = np.asarray(y)
 
         if len(texts) != len(targets):
-            raise ValueError("X e y devem possuir a mesma quantidade de itens.")
+            raise ValueError(
+                "X e y devem possuir a mesma quantidade de itens."
+            )
 
         self._validate_hyperparameters()
         self.vocabulary_ = self._build_vocabulary(texts)
@@ -236,7 +238,9 @@ class SklearnTorchTextClassifier(ClassifierMixin, BaseEstimator):
     def _validate_texts(self, X: Sequence[str]) -> list[str]:
         """Valida e materializa a coleção de textos recebida."""
         if isinstance(X, str):
-            raise TypeError("X deve ser uma coleção de textos, não uma string.")
+            raise TypeError(
+                "X deve ser uma coleção de textos, não uma string."
+            )
 
         texts = list(X)
         if not texts:

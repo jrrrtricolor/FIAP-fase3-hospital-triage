@@ -200,7 +200,9 @@ class ExperimentTracker:
         """
         # Buscar versões registradas para o modelo informado.
         client = MlflowClient()
-        versions = client.search_model_versions(f"name = '{registered_model_name}'")
+        versions = client.search_model_versions(
+            f"name = '{registered_model_name}'"
+        )
 
         # Interromper quando o modelo ainda não existir no registro.
         if not versions:
