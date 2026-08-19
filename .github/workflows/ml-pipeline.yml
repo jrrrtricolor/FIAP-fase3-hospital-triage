@@ -44,7 +44,8 @@ jobs:
         run: ruff check src/hospital_triage tests
 
       - name: Executar testes
-        run: pytest -q
+        # Executa os testes da aplicação e do framework com a raiz importável.
+        run: python -m pytest tests ml_prep_kit/tests -v
 
       - name: Baixar e validar o NHAMCS-ED 2021
         run: python data/download_dataset.py
