@@ -1,0 +1,55 @@
+[project]
+name = "hospital-triage"
+version = "0.1.0"
+description = "Classifica textos clínicos por nível de urgência."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "joblib>=1.4,<2.0",
+    "mlflow>=3.0,<4.0",
+    "numpy>=2.0,<3.0",
+    "pandas>=2.2,<3.0",
+    "prometheus-client>=0.21,<1.0",
+    "scikit-learn>=1.5,<2.0",
+    "uvicorn[standard]>=0.30,<1.0",
+]
+
+[tool.poetry]
+packages = [
+    { include = "hospital_triage", from = "src" },
+    { include = "ml_prep_kit", from = "ml_prep_kit/src" },
+]
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+httpx = ">=0.27,<1.0"
+pytest = ">=8.3,<10.0"
+ruff = ">=0.8,<1.0"
+
+[tool.poetry.group.notebooks]
+optional = true
+
+[tool.poetry.group.notebooks.dependencies]
+ipykernel = ">=6.29,<8.0"
+jupyterlab = ">=4.3,<5.0"
+matplotlib = ">=3.9,<4.0"
+nbconvert = ">=7.16,<8.0"
+seaborn = ">=0.13,<0.14"
+
+[tool.poetry.group.pipeline]
+optional = true
+
+[tool.poetry.group.pipeline.dependencies]
+dvc = ">=3.58,<4.0"
+
+[tool.poetry.group.training]
+optional = true
+
+[tool.poetry.group.training.dependencies]
+torch = ">=2.4,<3.0"
+
+[build-system]
+requires = ["poetry-core>=2.0,<3.0"]
+build-backend = "poetry.core.masonry.api"
