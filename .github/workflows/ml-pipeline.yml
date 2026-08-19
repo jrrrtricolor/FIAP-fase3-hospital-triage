@@ -17,11 +17,11 @@ env:
   PYTHONUNBUFFERED: "1"
 
 jobs:
-  pipeline:
-    name: Validar, preparar e treinar
+  validar:
+    name: 1. Validar código e testes
     # Máquina Linux hospedada pelo GitHub, com imagem fixa do Ubuntu.
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Baixar o código
@@ -47,6 +47,29 @@ jobs:
         # Executa os testes da aplicação e do framework com a raiz importável.
         run: python -m pytest tests ml_prep_kit/tests -v
 
+  preparar:
+    name: 2. Preparar dados
+    needs: validar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      # Cada job usa uma máquina nova e precisa preparar o próprio ambiente.
+      - name: Baixar o código
+        uses: actions/checkout@v6
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
       - name: Baixar e validar o NHAMCS-ED 2021
         run: python data/download_dataset.py
 
@@ -55,6 +78,47 @@ jobs:
 
       # Fail fast: qualquer inconsistência encerra o job antes do fit.
       - name: Validar dataset preparado
+        run: python -m src.hospital_triage.data_preparation --validate-only
+
+      # O artifact apenas transfere o SQLite para o próximo job deste workflow.
+      - name: Compartilhar dataset preparado
+        uses: actions/upload-artifact@v7
+        with:
+          name: training-data-${{ github.sha }}
+          path: data/processed/training_data.db
+          if-no-files-found: error
+          retention-days: 1
+
+  treinar:
+    name: 3. Treinar e registrar modelo
+    needs: preparar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v6
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Receber dataset preparado
+        uses: actions/download-artifact@v8
+        with:
+          name: training-data-${{ github.sha }}
+          path: data/processed
+
+      # Revalida o arquivo recebido antes de iniciar o treinamento.
+      - name: Validar dataset recebido
         run: python -m src.hospital_triage.data_preparation --validate-only
 
       - name: Treinar e registrar o modelo no MLflow
