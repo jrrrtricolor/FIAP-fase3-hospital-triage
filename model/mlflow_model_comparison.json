@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "experiment_name": "hospital-triage-model-comparison",
+  "source_notebook": "notebooks/03_model_comparison_nhamcs_2021.ipynb",
+  "tracking_backend": "local SQLite",
+  "dataset_version": "nhamcs-ed-2021-training-v1",
+  "evaluation_split": "validation",
+  "evaluation_rows": 1573,
+  "selection_metric": "f1_macro",
+  "selected_model": "tfidf-logistic-regression",
+  "runs": [
+    {
+      "run_id": "6febb7084fe347e7978923b11afdc3e4",
+      "run_name": "tfidf-logistic-regression",
+      "status": "FINISHED",
+      "model_artifact_logged": true,
+      "parameters": {
+        "vectorizer": "TF-IDF",
+        "ngram_range": "(1, 2)",
+        "max_features": 10000,
+        "class_weight": "balanced",
+        "random_state": 42,
+        "dataset_version": "nhamcs-ed-2021-training-v1"
+      },
+      "metrics": {
+        "accuracy": 0.570884,
+        "precision_macro": 0.551044,
+        "recall_macro": 0.583341,
+        "f1_macro": 0.558214,
+        "f1_weighted": 0.574413,
+        "training_seconds": 0.377319,
+        "inference_seconds": 0.027418,
+        "latency_ms_per_record": 0.017430
+      }
+    },
+    {
+      "run_id": "5169360d58bb4689b788409b84fd3e5b",
+      "run_name": "pytorch-text-classifier",
+      "status": "FINISHED",
+      "model_artifact_logged": true,
+      "parameters": {
+        "embedding_dim": 64,
+        "learning_rate": 0.005,
+        "epochs": 10,
+        "batch_size": 128,
+        "max_vocab_size": 10000,
+        "max_sequence_length": 128,
+        "random_seed": 42,
+        "dataset_version": "nhamcs-ed-2021-training-v1"
+      },
+      "metrics": {
+        "accuracy": 0.609663,
+        "precision_macro": 0.591036,
+        "recall_macro": 0.522588,
+        "f1_macro": 0.534851,
+        "f1_weighted": 0.591205,
+        "training_seconds": 1.307161,
+        "inference_seconds": 0.018737,
+        "latency_ms_per_record": 0.011911
+      }
+    }
+  ]
+}
