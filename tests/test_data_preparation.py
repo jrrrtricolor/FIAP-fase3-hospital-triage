@@ -1,10 +1,16 @@
 """Teste do contrato de preparação do NHAMCS."""
 
-import pandas as pd
+import hashlib
 
+import pandas as pd
+import pytest
+
+from ml_prep_kit import SQLiteDataFrameStore
 from src.hospital_triage.data_preparation import (
+    DATASET_VERSION,
     TRAINING_COLUMNS,
     build_training_data,
+    validate_prepared_database,
 )
 
 
@@ -76,3 +82,40 @@ def test_builds_training_data_without_leakage() -> None:
     assert "Age: 93 years or older." in all_text
     assert "systolic blood pressure 120 mmHg" in all_text
     assert "DIAG1" not in result.columns
+
+
+def test_validates_database_and_rejects_invalid_hash(tmp_path) -> None:
+    """Interrompe o pipeline quando o artefato preparado é inconsistente."""
+    texts = ["stable patient", "moderate symptom", "critical emergency"]
+    data = pd.DataFrame(
+        {
+            "record_id": ["record-1", "record-2", "record-3"],
+            "clinical_text": texts,
+            "target": ["normal", "atencao", "urgente"],
+            "text_hash": [
+                hashlib.sha256(text.casefold().encode("utf-8")).hexdigest()
+                for text in texts
+            ],
+            "split": ["train", "validation", "test"],
+            "dataset_version": DATASET_VERSION,
+        }
+    )
+
+    database_path = tmp_path / "training_data.db"
+    store = SQLiteDataFrameStore(database_path)
+    store.save_dataframe(data, "training_data")
+
+    validated = validate_prepared_database(
+        database_path,
+        check_official_counts=False,
+    )
+    assert len(validated) == 3
+
+    # Um hash adulterado deve falhar antes de qualquer treinamento.
+    data.loc[0, "text_hash"] = "invalid"
+    store.save_dataframe(data, "training_data")
+    with pytest.raises(ValueError, match="hash de texto inválido"):
+        validate_prepared_database(
+            database_path,
+            check_official_counts=False,
+        )

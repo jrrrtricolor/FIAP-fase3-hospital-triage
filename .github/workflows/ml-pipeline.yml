@@ -1,0 +1,63 @@
+name: CI - Dados e treinamento
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# O pipeline apenas lê o repositório. A publicação será adicionada depois.
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  pipeline:
+    name: Validar, preparar e treinar
+    # Máquina Linux hospedada pelo GitHub, com imagem fixa do Ubuntu.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v6
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      # Fail fast: código inválido interrompe o pipeline antes dos dados.
+      - name: Validar estilo
+        run: ruff check src/hospital_triage tests
+
+      - name: Executar testes
+        run: pytest -q
+
+      - name: Baixar e validar o NHAMCS-ED 2021
+        run: python data/download_dataset.py
+
+      - name: Preparar o dataset de treinamento
+        run: python -m src.hospital_triage.data_preparation
+
+      # Fail fast: qualquer inconsistência encerra o job antes do fit.
+      - name: Validar dataset preparado
+        run: python -m src.hospital_triage.data_preparation --validate-only
+
+      - name: Treinar e registrar o modelo no MLflow
+        # Variável exclusiva do step: rastreia a versão no Model Registry.
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: python -m src.hospital_triage.training --git-sha "$GITHUB_SHA"

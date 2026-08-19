@@ -189,8 +189,9 @@ class ExperimentTracker:
         self,
         registered_model_name: str,
         alias: str = "production",
+        tags: dict[str, Any] | None = None,
     ) -> str:
-        """Promove a versão mais recente do modelo registrado.
+        """Promove e identifica a versão mais recente do modelo.
 
         Exemplo:
             version = tracker.promote_latest_model_version(
@@ -222,6 +223,15 @@ class ExperimentTracker:
             alias,
             latest_version.version,
         )
+
+        # Tags ligam a versão do Registry ao código que a produziu.
+        for key, value in (tags or {}).items():
+            client.set_model_version_tag(
+                registered_model_name,
+                latest_version.version,
+                key,
+                str(value),
+            )
         logger.info(
             "Modelo promovido para produção.",
             extra={

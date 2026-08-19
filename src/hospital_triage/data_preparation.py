@@ -1,5 +1,6 @@
 """Prepara o NHAMCS-ED 2021 para classificação textual de urgência."""
 
+import argparse
 import hashlib
 import json
 import re
@@ -24,6 +25,11 @@ EXPECTED_CLASS_COUNTS = {
     "normal": 3_186,
     "atencao": 5_429,
     "urgente": 1_880,
+}
+EXPECTED_SPLIT_COUNTS = {
+    "train": 7_350,
+    "validation": 1_573,
+    "test": 1_572,
 }
 
 # IMMEDR informa a prioridade de atendimento registrada na triagem.
@@ -76,6 +82,11 @@ OBSERVATION_FORMATS = (
 # Vinte folds geram 70% treino, 15% validação e 15% teste.
 SPLIT_BY_FOLD = ("train",) * 14 + ("validation",) * 3 + ("test",) * 3
 WHITESPACE_PATTERN = re.compile(r"\s+")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_SOURCE_PATH = (
+    PROJECT_ROOT / "data/raw/nhamcs/2021/ed2021-stata.dta"
+)
+DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data/processed/training_data.db"
 
 
 def prepare_training_data(
@@ -116,6 +127,25 @@ def prepare_training_data(
     store.save_dataframe(training_data, "training_data")
     store.save_dataframe(metadata, "metadata")
     return training_data
+
+
+def validate_prepared_database(
+    database_path: str | Path,
+    *,
+    check_official_counts: bool = True,
+) -> pd.DataFrame:
+    """Valida o SQLite preparado antes que o treinamento seja iniciado."""
+    path = Path(database_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Base preparada ausente: {path}.")
+
+    store = SQLiteDataFrameStore(path)
+    data = store.load_dataframe("training_data")
+    _validate_training_data(
+        data,
+        check_official_counts=check_official_counts,
+    )
+    return data
 
 
 def build_training_data(
@@ -307,6 +337,13 @@ def _validate_training_data(
         "record_id duplicado": data["record_id"].is_unique,
         "classes inválidas": set(data["target"]) == set(TARGET_ORDER),
         "splits inválidos": set(data["split"]) == set(SPLIT_BY_FOLD),
+        "versão inválida": data["dataset_version"].eq(DATASET_VERSION).all(),
+        "texto vazio": data["clinical_text"].str.strip().ne("").all(),
+        "hash de texto inválido": data.apply(
+            lambda row: row["text_hash"]
+            == _sha256(row["clinical_text"].casefold()),
+            axis=1,
+        ).all(),
         "texto em mais de um split": not groups["split"].nunique().gt(1).any(),
         "texto com targets distintos": (
             not groups["target"].nunique().gt(1).any()
@@ -320,11 +357,13 @@ def _validate_training_data(
         observed = (
             len(data),
             data["target"].value_counts().to_dict(),
+            data["split"].value_counts().to_dict(),
             data["text_hash"].nunique(),
         )
         expected = (
             EXPECTED_ELIGIBLE_ROWS,
             EXPECTED_CLASS_COUNTS,
+            EXPECTED_SPLIT_COUNTS,
             EXPECTED_UNIQUE_TEXTS,
         )
         if observed != expected:
@@ -357,10 +396,42 @@ def _counts_json(values: pd.Series) -> str:
     return json.dumps(counts, sort_keys=True)
 
 
+def parse_args() -> argparse.Namespace:
+    """Lê os caminhos usados pelo comando de preparação."""
+    parser = argparse.ArgumentParser(
+        description="Prepara o dataset de treinamento do hospital triage."
+    )
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=DEFAULT_SOURCE_PATH,
+        help="Arquivo Stata do NHAMCS-ED 2021.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT_PATH,
+        help="Banco SQLite que receberá os dados preparados.",
+    )
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="Valida o SQLite existente sem executar nova preparação.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Executa a preparação e informa o artefato produzido."""
+    args = parse_args()
+    if args.validate_only:
+        result = validate_prepared_database(args.output)
+        print(f"{len(result):,} registros validados em {args.output}.")
+        return
+
+    result = prepare_training_data(args.source, args.output)
+    print(f"{len(result):,} registros gravados em {args.output}.")
+
+
 if __name__ == "__main__":
-    # Entrada direta para o futuro stage de preparação do DVC.
-    root = Path(__file__).resolve().parents[2]
-    source = root / "data/raw/nhamcs/2021/ed2021-stata.dta"
-    output = root / "data/processed/training_data.db"
-    result = prepare_training_data(source, output)
-    print(f"{len(result):,} registros gravados em {output}.")
+    main()
