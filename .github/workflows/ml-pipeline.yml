@@ -126,3 +126,32 @@ jobs:
         env:
           GITHUB_SHA: ${{ github.sha }}
         run: python -m src.hospital_triage.training --git-sha "$GITHUB_SHA"
+
+      # Guarda o original, o ONNX e o benchmark para auditoria da execução.
+      - name: Compartilhar modelos e benchmark
+        uses: actions/upload-artifact@v7
+        with:
+          name: trained-model-${{ github.sha }}
+          path: |
+            model/hospital_triage_model.joblib
+            model/hospital_triage_model.onnx
+            model/training_metrics.json
+            model/onnx_benchmark.json
+          if-no-files-found: error
+          retention-days: 7
+
+  container:
+    name: 4. Construir imagem Docker
+    needs: treinar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v6
+
+      # O build só ocorre depois das validações, preparação e treinamento.
+      - name: Construir imagem sem publicar
+        env:
+          IMAGE_TAG: hospital-triage:${{ github.sha }}
+        run: docker build --tag "$IMAGE_TAG" .

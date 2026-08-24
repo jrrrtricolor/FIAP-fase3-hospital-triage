@@ -45,7 +45,9 @@ def test_trains_and_exports_model_with_mlflow(tmp_path, monkeypatch) -> None:
 
     database_path = tmp_path / "training_data.db"
     model_path = tmp_path / "model.joblib"
+    onnx_path = tmp_path / "model.onnx"
     metrics_path = tmp_path / "metrics.json"
+    optimization_path = tmp_path / "onnx_benchmark.json"
     mlflow_path = tmp_path / "mlflow.db"
     SQLiteDataFrameStore(database_path).save_dataframe(
         pd.DataFrame(rows),
@@ -63,6 +65,7 @@ def test_trains_and_exports_model_with_mlflow(tmp_path, monkeypatch) -> None:
     )
 
     saved_report = json.loads(metrics_path.read_text(encoding="utf-8"))
+    optimization_report = json.loads(optimization_path.read_text(encoding="utf-8"))
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -72,16 +75,28 @@ def test_trains_and_exports_model_with_mlflow(tmp_path, monkeypatch) -> None:
         saved_model = joblib.load(model_path)
 
     assert model_path.exists()
+    assert onnx_path.exists()
     assert mlflow_path.exists()
     assert saved_report["mlflow_run_id"] == report["mlflow_run_id"]
     assert saved_report["dataset_version"] == "test-dataset-v1"
     assert saved_report["metrics"]["f1_macro"] == 1.0
-    assert saved_report["registered_model_name"] == (
-        "hospital-triage-text-classifier"
-    )
+    assert saved_report["registered_model_name"] == "hospital-triage-text-classifier"
     assert saved_report["registered_model_version"] == "1"
     assert saved_report["model_alias"] == "champion"
     assert saved_report["git_sha"] == git_sha
+    assert optimization_report["technique"] == "ONNX Runtime"
+    assert optimization_report["git_sha"] == git_sha
+    assert optimization_report["comparison"]["prediction_agreement"] == 1.0
+    assert optimization_report["f1_macro"] == 1.0
+    assert saved_report["metrics"]["onnx_speedup"] > 0
+
+    # ONNX e benchmark ficam ligados à mesma execução do modelo registrado.
+    artifact_names = {
+        artifact.path
+        for artifact in MlflowClient().list_artifacts(report["mlflow_run_id"])
+    }
+    assert "model.onnx" in artifact_names
+    assert "onnx_benchmark.json" in artifact_names
 
     # A versão do Registry deve apontar para o commit que gerou o modelo.
     registered_version = MlflowClient().get_model_version(

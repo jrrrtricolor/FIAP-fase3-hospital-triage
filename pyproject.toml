@@ -44,6 +44,13 @@ optional = true
 [tool.poetry.group.pipeline.dependencies]
 dvc = ">=3.58,<4.0"
 
+[tool.poetry.group.optimization]
+optional = true
+
+[tool.poetry.group.optimization.dependencies]
+onnxruntime = ">=1.20,<2.0"
+skl2onnx = ">=1.18,<2.0"
+
 [tool.poetry.group.training]
 optional = true
 

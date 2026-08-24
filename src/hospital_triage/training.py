@@ -43,6 +43,8 @@ def build_model() -> Pipeline:
         ngram_range=(1, 2),
         min_df=2,
         max_features=10_000,
+        # Regex ASCII equivalente para o corpus em inglês e compatível com RE2.
+        token_pattern=r"[A-Za-z0-9_]{2,}",
     )
     return ModelFactory(random_state=RANDOM_STATE).create_pipeline(
         preprocessor=vectorizer,
@@ -62,7 +64,7 @@ def train_and_export(
     tracking_uri: str,
     git_sha: str = "local",
 ) -> dict[str, object]:
-    """Treina com o split oficial e salva modelo, métricas e run do MLflow."""
+    """Treina, otimiza com ONNX e registra os artefatos no MLflow."""
     _validate_git_sha(git_sha)
     store = SQLiteDataFrameStore(database_path)
     data = store.load_dataframe(
@@ -80,9 +82,7 @@ def train_and_export(
     model.fit(train_data["clinical_text"], train_data["target"])
     training_seconds = time.perf_counter() - training_start
 
-    inference_start = time.perf_counter()
     predictions = model.predict(validation_data["clinical_text"])
-    inference_seconds = time.perf_counter() - inference_start
 
     evaluator = ModelEvaluator()
     metrics = evaluator.evaluate_classification(
@@ -97,13 +97,50 @@ def train_and_export(
         {
             "urgent_recall": float(by_class.loc["urgente", "recall"]),
             "training_seconds": training_seconds,
-            "inference_seconds": inference_seconds,
-            "latency_ms_per_record": (
-                inference_seconds * 1_000 / len(validation_data)
-            ),
         }
     )
     _validate_model_metrics(metrics)
+
+    model_output = Path(model_path)
+    metrics_output = Path(metrics_path)
+    onnx_output = model_output.with_suffix(".onnx")
+    optimization_output = metrics_output.with_name("onnx_benchmark.json")
+    model_output.parent.mkdir(parents=True, exist_ok=True)
+    metrics_output.parent.mkdir(parents=True, exist_ok=True)
+
+    joblib.dump(model, model_output)
+    comparison = _benchmark_onnx(
+        model,
+        validation_data["clinical_text"].tolist(),
+        model_output,
+        onnx_output,
+    )
+    if comparison["prediction_agreement"] != 1.0:
+        raise ValueError("O modelo ONNX alterou as classes previstas.")
+    if comparison["speedup"] <= 1 and comparison["size_reduction_percent"] <= 0:
+        raise ValueError("O modelo ONNX não apresentou ganho.")
+    metrics.update(
+        {
+            "latency_ms_per_record": comparison["original_latency_ms_per_record"],
+            "onnx_latency_ms_per_record": comparison["onnx_latency_ms_per_record"],
+            "onnx_speedup": comparison["speedup"],
+            "onnx_size_reduction_percent": comparison["size_reduction_percent"],
+        }
+    )
+
+    optimization_report = {
+        "technique": "ONNX Runtime",
+        "dataset_version": dataset_version,
+        "git_sha": git_sha,
+        "validation_rows": len(validation_data),
+        "f1_macro": metrics["f1_macro"],
+        "urgent_recall": metrics["urgent_recall"],
+        "comparison": comparison,
+    }
+    optimization_output.write_text(
+        json.dumps(optimization_report, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
 
     parameters = {
         "model_name": MODEL_NAME,
@@ -111,6 +148,7 @@ def train_and_export(
         "vectorizer": "TF-IDF",
         "ngram_range": "(1, 2)",
         "max_features": 10_000,
+        "token_pattern": r"[A-Za-z0-9_]{2,}",
         "class_weight": "balanced",
         "random_state": RANDOM_STATE,
         "train_rows": len(train_data),
@@ -118,6 +156,7 @@ def train_and_export(
         "minimum_f1_macro": MINIMUM_F1_MACRO,
         "minimum_urgent_recall": MINIMUM_URGENT_RECALL,
         "git_sha": git_sha,
+        "optimization": "ONNX Runtime",
     }
 
     # O framework centraliza o tracking e o registro do pipeline completo.
@@ -130,6 +169,7 @@ def train_and_export(
         model=model,
         parameters=parameters,
         metrics=metrics,
+        artifacts=[onnx_output, optimization_output],
         registered_model_name=REGISTERED_MODEL_NAME,
     )
     model_version = tracker.promote_latest_model_version(
@@ -149,19 +189,62 @@ def train_and_export(
         "git_sha": git_sha,
         "parameters": parameters,
         "metrics": metrics,
+        "optimization": optimization_report,
     }
 
-    # Os diretórios são criados somente quando o comando é executado.
-    model_output = Path(model_path)
-    metrics_output = Path(metrics_path)
-    model_output.parent.mkdir(parents=True, exist_ok=True)
-    metrics_output.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, model_output)
     metrics_output.write_text(
         json.dumps(report, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
     return report
+
+
+def _benchmark_onnx(
+    model: Pipeline,
+    texts: list[str],
+    model_path: Path,
+    onnx_path: Path,
+) -> dict[str, float | int]:
+    """Exporta o ONNX e compara latência, predições e tamanho."""
+    import numpy as np
+    import onnxruntime as ort
+    from skl2onnx import to_onnx
+    from skl2onnx.common.data_types import StringTensorType
+
+    converted = to_onnx(
+        model,
+        initial_types=[("clinical_text", StringTensorType([None, 1]))],
+        options={"zipmap": False},
+        target_opset=18,
+    )
+    onnx_path.write_bytes(converted.SerializeToString())
+
+    ort.disable_telemetry_events()
+    session = ort.InferenceSession(
+        str(onnx_path),
+        providers=["CPUExecutionProvider"],
+    )
+    input_data = np.asarray(texts, dtype=object).reshape(-1, 1)
+
+    started_at = time.perf_counter()
+    original_predictions = np.asarray(model.predict(texts))
+    original_seconds = time.perf_counter() - started_at
+
+    started_at = time.perf_counter()
+    onnx_predictions = np.asarray(session.run(None, {"clinical_text": input_data})[0])
+    onnx_seconds = time.perf_counter() - started_at
+    original_size, onnx_size = model_path.stat().st_size, onnx_path.stat().st_size
+    return {
+        "prediction_agreement": float(
+            np.mean(original_predictions == onnx_predictions)
+        ),
+        "original_latency_ms_per_record": (original_seconds * 1_000 / len(texts)),
+        "onnx_latency_ms_per_record": onnx_seconds * 1_000 / len(texts),
+        "speedup": original_seconds / onnx_seconds,
+        "original_size_bytes": original_size,
+        "onnx_size_bytes": onnx_size,
+        "size_reduction_percent": (1 - onnx_size / original_size) * 100,
+    }
 
 
 def _validate_training_data(data: pd.DataFrame) -> str:
@@ -193,9 +276,7 @@ def _validate_model_metrics(metrics: dict[str, float]) -> None:
     if metrics["urgent_recall"] < MINIMUM_URGENT_RECALL:
         failed.append("urgent_recall")
     if failed:
-        raise ValueError(
-            f"Modelo abaixo dos critérios mínimos: {', '.join(failed)}."
-        )
+        raise ValueError(f"Modelo abaixo dos critérios mínimos: {', '.join(failed)}.")
 
 
 def _validate_git_sha(git_sha: str) -> None:
@@ -255,6 +336,7 @@ def main() -> None:
         f"F1 macro: {report['metrics']['f1_macro']:.3f}."
     )
     print(f"Modelo salvo em {args.model_output}.")
+    print(f"Ganho ONNX: {report['optimization']['comparison']['speedup']:.2f}x.")
     print(f"Métricas salvas em {args.metrics_output}.")
 
 
