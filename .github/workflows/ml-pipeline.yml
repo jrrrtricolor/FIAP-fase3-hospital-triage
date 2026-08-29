@@ -13,8 +13,8 @@ permissions:
 
 jobs:
   ml-pipeline:
-    # SHA imutável da versão v1.0.0 do template compartilhado.
-    uses: jrrrtricolor/fiap-ml-ci-templates/.github/workflows/ml-pipeline.yml@049256ac9ca0d458c536a11e083cbdecf5c0e050
+    # SHA imutável da versão v1.0.1 do template compartilhado.
+    uses: jrrrtricolor/fiap-ml-ci-templates/.github/workflows/ml-pipeline.yml@d2e0d7b2df961eda4c639a3d66715bba2e3639da
     with:
       runner: ubuntu-24.04
       python-version: "3.12"
