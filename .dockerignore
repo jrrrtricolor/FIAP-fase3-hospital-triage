@@ -14,7 +14,8 @@ docs
 notebooks
 tests
 ml_prep_kit/tests
-model
+model/*
+!model/hospital_triage_model.onnx
 mlruns
 mlartifacts
 *.db

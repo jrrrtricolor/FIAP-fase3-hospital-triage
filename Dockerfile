@@ -30,14 +30,25 @@ RUN poetry install --only main --no-root --no-ansi \
 FROM python-base AS runtime
 
 ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH="/app:/app/src"
+    PYTHONPATH="/app:/app/src" \
+    MODEL_PATH="/app/model/hospital_triage_model.onnx" \
+    MODEL_VERSION="onnx-nhamcs-2021-v1"
 
-RUN groupadd --system app \
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends locales \
+    && sed -i 's/^# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app \
     && useradd --system --gid app --home-dir /app app
+
+ENV LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8"
 
 COPY --from=builder /app/.venv /app/.venv
 COPY --chown=app:app src ./src
 COPY --chown=app:app ml_prep_kit ./ml_prep_kit
+COPY --chown=app:app model/hospital_triage_model.onnx ./model/
 
 USER app
 
