@@ -7,9 +7,9 @@
   "urgent_recall": 0.5780141843971631,
   "comparison": {
     "prediction_agreement": 1.0,
-    "original_latency_ms_per_record": 0.01860394151347366,
-    "onnx_latency_ms_per_record": 0.012949512395856799,
-    "speedup": 1.4366518942771929,
+    "original_latency_ms_per_record": 0.15882211887756942,
+    "onnx_latency_ms_per_record": 0.06740391926236927,
+    "speedup": 2.3562742436290014,
     "original_size_bytes": 405604,
     "onnx_size_bytes": 252634,
     "size_reduction_percent": 37.71412510724746

@@ -5,8 +5,8 @@ import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
-    precision_score,
     precision_recall_fscore_support,
+    precision_score,
     recall_score,
     roc_auc_score,
 )

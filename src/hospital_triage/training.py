@@ -31,10 +31,14 @@ MINIMUM_URGENT_RECALL = 0.55
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+if os.path.normpath(PROJECT_ROOT) == os.path.normpath(os.getcwd()):
+    PROJECT_ROOT = Path(".")
+
 DEFAULT_DATABASE_PATH = PROJECT_ROOT / "data/processed/training_data.db"
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "model/hospital_triage_model.joblib"
 DEFAULT_METRICS_PATH = PROJECT_ROOT / "model/training_metrics.json"
-DEFAULT_TRACKING_URI = f"sqlite:///{PROJECT_ROOT / 'mlflow.db'}"
+DEFAULT_TRACKING_URI = f"sqlite:///{PROJECT_ROOT / 'mldb/mlflow.db'}"
 
 
 def build_model() -> Pipeline:
@@ -321,7 +325,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
+def train_model_main() -> None:
     """Executa o treinamento e informa os artefatos produzidos."""
     args = parse_args()
     report = train_and_export(
@@ -341,4 +345,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    train_model_main()
