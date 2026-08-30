@@ -74,6 +74,10 @@ model/**/*.pickle
 model/**/*.pt
 model/**/*.pth
 model/**/*.onnx
+!model/hospital_triage_model.onnx
+
+# Arquivo residual criado por algumas versões do ONNX Runtime.
+*.ses
 
 # MLflow
 mlruns/
