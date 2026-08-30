@@ -1,0 +1,27 @@
+groups:
+  - name: hospital_triage
+    rules:
+      - alert: HighErrorRate
+        expr: total_de_erros_na_api > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alto número de erros na API detectado"
+          description: "A API encontrou mais de 5 erros nos últimos 5 minutos."
+      - alert: HighPredictionDuration
+        expr: duracao_da_predicao_segundos > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta duração da predição detectada"
+          description: "A duração do processamento da predição excedeu 1 segundo nos últimos 5 minutos."
+      - alert: LowAverageConfidence
+        expr: confianca_media_da_predicao < 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Baixa confiança média das predições detectada"
+          description: "A confiança média das predições caiu abaixo de 0.5 nos últimos 5 minutos."

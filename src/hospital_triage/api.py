@@ -7,8 +7,18 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, StringConstraints
 
+from hospital_triage.config.api_logging_middleware import (
+    LoggingMiddleware,
+)
+from hospital_triage.config.logging_config import setup_api_logger
+from hospital_triage.prometheus.metrics import (
+    AVG_CONFIDENCE,
+    PREDICTION_DURATION,
+    PREDICTIONS_TOTAL,
+)
 from ml_prep_kit import ModelPredictor
 
 from .training import (
@@ -46,7 +56,7 @@ class PredictionResponse(BaseModel):
 
 
 ModelLoader = Callable[[], tuple[ModelPredictor, str]]
-
+LOGGER = setup_api_logger()
 
 def load_registered_model() -> tuple[ModelPredictor, str]:
     """Carrega uma única vez o modelo promovido no MLflow Registry."""
@@ -83,6 +93,12 @@ def create_app(
     )
     application.state.predictor = predictor
     application.state.model_version = model_version
+    application.add_middleware(LoggingMiddleware)
+    Instrumentator().instrument(application).expose(
+        application, 
+        endpoint="/metrics", 
+        summary="Métricas de desempenho da API para Prometheus"
+    )
 
     def require_predictor(request: Request) -> ModelPredictor:
         """Recusa inferências enquanto o modelo não estiver disponível."""
@@ -128,6 +144,20 @@ def create_app(
             for class_name, score in zip(classes, scores, strict=True)
         }
         inference_time_ms = (time.perf_counter() - started_at) * 1_000
+
+        LOGGER.info(
+            "predicao_gerada",
+            extra={
+                "duracao_ms": inference_time_ms,
+                "confianca": max(probabilities.values()),
+                "probabilidades": probabilities,
+            },
+        )
+
+        PREDICTION_DURATION.observe(inference_time_ms / 1_000)
+        PREDICTIONS_TOTAL.inc()
+        AVG_CONFIDENCE.observe(max(probabilities.values()))
+
         return PredictionResponse(
             target=target,
             probabilities=probabilities,
