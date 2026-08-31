@@ -1,8 +1,5 @@
 x-airflow-common:
   &airflow-common
-  build:
-    context: .
-    dockerfile: Dockerfile.airflow
   image: hospital-triage-airflow:latest
 
   environment:
@@ -90,6 +87,9 @@ services:
 
   airflow-init:
     <<: *airflow-common
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     entrypoint: /bin/bash
     command:
       - -c
