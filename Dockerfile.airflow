@@ -4,7 +4,9 @@
 FROM apache/airflow:3.3.1-python3.12
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
 
 ENV POETRY_VERSION=2.4.1 \
     POETRY_NO_INTERACTION=1 \
@@ -12,11 +14,8 @@ ENV POETRY_VERSION=2.4.1 \
     POETRY_CACHE_DIR=/tmp/poetry-cache
 
 USER root
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends locales \
-    && sed -i 's/^# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
-    && locale-gen \
-    && rm -rf /var/lib/apt/lists/*
+RUN sed -i 's/^# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen
 
 ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
@@ -28,7 +27,7 @@ WORKDIR /app
 
 COPY --chown=airflow:root pyproject.toml poetry.lock ./
 
-RUN poetry install --only main --no-root --no-ansi \
+RUN poetry install --only main,training --no-root --no-ansi \
     && rm -rf "$POETRY_CACHE_DIR"
 
 COPY --chown=airflow:root src ./src

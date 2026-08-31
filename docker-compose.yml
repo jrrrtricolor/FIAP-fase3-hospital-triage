@@ -3,6 +3,7 @@ x-airflow-common:
   build:
     context: .
     dockerfile: Dockerfile.airflow
+  image: hospital-triage-airflow:latest
 
   environment:
     &airflow-common-env

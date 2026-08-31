@@ -4,7 +4,9 @@
 FROM python:3.12-slim AS python-base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
 
 WORKDIR /app
 
@@ -26,7 +28,7 @@ RUN poetry install --only main --no-root --no-ansi \
     && rm -rf "$POETRY_CACHE_DIR"
 
 
-# A imagem final recebe somente o ambiente virtual e o código de inferência.
+# A imagem final recebe somente o runtime ONNX e o código de inferência.
 FROM python-base AS runtime
 
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -42,8 +44,8 @@ RUN apt-get update \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app app
 
-ENV LANG="en_US.UTF-8" \
-    LC_ALL="en_US.UTF-8"
+ENV LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
 
 COPY --from=builder /app/.venv /app/.venv
 COPY --chown=app:app src ./src
