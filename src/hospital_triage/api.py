@@ -11,6 +11,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, StringConstraints
 
+from ml_prep_kit import ModelPredictor
 from src.hospital_triage.config.api_logging_middleware import (
     LoggingMiddleware,
 )
@@ -20,7 +21,6 @@ from src.hospital_triage.prometheus.metrics import (
     PREDICTION_DURATION,
     PREDICTIONS_TOTAL,
 )
-from ml_prep_kit import ModelPredictor
 
 from .data_preparation import TARGET_ORDER
 from .training import (
