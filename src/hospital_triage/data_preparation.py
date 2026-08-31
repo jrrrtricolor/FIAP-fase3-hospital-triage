@@ -421,7 +421,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
+def prepare_data_main() -> None:
     """Executa a preparação e informa o artefato produzido."""
     args = parse_args()
     if args.validate_only:
@@ -434,4 +434,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    prepare_data_main()

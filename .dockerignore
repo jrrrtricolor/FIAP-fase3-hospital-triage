@@ -9,7 +9,8 @@ __pycache__
 .ipynb_checkpoints
 
 agents
-data
+data/processed
+data/raw
 docs
 notebooks
 tests

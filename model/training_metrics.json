@@ -1,0 +1,61 @@
+{
+  "model_name": "tfidf-logistic-regression",
+  "dataset_version": "nhamcs-ed-2021-training-v1",
+  "selection_metric": "f1_macro",
+  "mlflow_run_id": "57bd849c4f134db1981bd6085fc5ff55",
+  "registered_model_name": "hospital-triage-text-classifier",
+  "registered_model_version": "1",
+  "model_alias": "champion",
+  "git_sha": "local",
+  "parameters": {
+    "model_name": "tfidf-logistic-regression",
+    "dataset_version": "nhamcs-ed-2021-training-v1",
+    "vectorizer": "TF-IDF",
+    "ngram_range": "(1, 2)",
+    "max_features": 10000,
+    "token_pattern": "[A-Za-z0-9_]{2,}",
+    "class_weight": "balanced",
+    "random_state": 42,
+    "train_rows": 7350,
+    "validation_rows": 1573,
+    "minimum_f1_macro": 0.55,
+    "minimum_urgent_recall": 0.55,
+    "git_sha": "local",
+    "optimization": "ONNX Runtime"
+  },
+  "metrics": {
+    "accuracy": 0.5708836617927527,
+    "precision": 0.5510435758812439,
+    "recall": 0.5833407949024167,
+    "f1": 0.5582144642686065,
+    "precision_macro": 0.5510435758812439,
+    "recall_macro": 0.5833407949024167,
+    "f1_macro": 0.5582144642686065,
+    "precision_weighted": 0.5952319105955565,
+    "recall_weighted": 0.5708836617927527,
+    "f1_weighted": 0.5744132246722016,
+    "urgent_recall": 0.5780141843971631,
+    "training_seconds": 17.71016650898673,
+    "latency_ms_per_record": 0.15882211887756942,
+    "onnx_latency_ms_per_record": 0.06740391926236927,
+    "onnx_speedup": 2.3562742436290014,
+    "onnx_size_reduction_percent": 37.71412510724746
+  },
+  "optimization": {
+    "technique": "ONNX Runtime",
+    "dataset_version": "nhamcs-ed-2021-training-v1",
+    "git_sha": "local",
+    "validation_rows": 1573,
+    "f1_macro": 0.5582144642686065,
+    "urgent_recall": 0.5780141843971631,
+    "comparison": {
+      "prediction_agreement": 1.0,
+      "original_latency_ms_per_record": 0.15882211887756942,
+      "onnx_latency_ms_per_record": 0.06740391926236927,
+      "speedup": 2.3562742436290014,
+      "original_size_bytes": 405604,
+      "onnx_size_bytes": 252634,
+      "size_reduction_percent": 37.71412510724746
+    }
+  }
+}

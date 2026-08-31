@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+
+# Builder e runtime reutilizam as mesmas camadas da imagem Python.
+FROM apache/airflow:3.3.1-python3.12
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+ENV POETRY_VERSION=2.4.1 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_CACHE_DIR=/tmp/poetry-cache
+    
+USER root
+RUN apt-get update
+RUN apt-get install locales locales-all -y
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+USER airflow
+RUN python -m pip install --no-cache-dir "poetry==$POETRY_VERSION"
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock .
+COPY src ./src
+COPY ml_prep_kit ./ml_prep_kit
+COPY data ./data
+
+RUN poetry install --only main --no-root --no-ansi \
+    && rm -rf "$POETRY_CACHE_DIR"
+
+WORKDIR /opt/airflow
+
+ENV PYTHONPATH="/app:/app/src:/app/ml_prep_kit/src"
