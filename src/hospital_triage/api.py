@@ -11,11 +11,11 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, StringConstraints
 
-from hospital_triage.config.api_logging_middleware import (
+from src.hospital_triage.config.api_logging_middleware import (
     LoggingMiddleware,
 )
-from hospital_triage.config.logging_config import setup_api_logger
-from hospital_triage.prometheus.metrics import (
+from src.hospital_triage.config.logging_config import setup_api_logger
+from src.hospital_triage.prometheus.metrics import (
     AVG_CONFIDENCE,
     PREDICTION_DURATION,
     PREDICTIONS_TOTAL,

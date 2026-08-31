@@ -33,4 +33,4 @@ RUN poetry install --only main --no-root --no-ansi \
 
 WORKDIR /opt/airflow
 
-ENV PYTHONPATH="/app/src:/app/ml_prep_kit/src"
+ENV PYTHONPATH="/app:/app/src:/app/ml_prep_kit/src"

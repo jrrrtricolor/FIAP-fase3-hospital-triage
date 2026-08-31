@@ -4,8 +4,8 @@ import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from hospital_triage.config.logging_config import setup_api_logger
-from hospital_triage.prometheus.metrics import ERRORS_TOTAL
+from src.hospital_triage.config.logging_config import setup_api_logger
+from src.hospital_triage.prometheus.metrics import ERRORS_TOTAL
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
