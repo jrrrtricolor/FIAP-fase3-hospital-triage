@@ -9,7 +9,11 @@ import pytest
 from mlflow.tracking import MlflowClient
 
 from ml_prep_kit import SQLiteDataFrameStore
-from src.hospital_triage.training import train_and_export
+from src.hospital_triage.training import (
+    train_and_export,
+    validate_evaluation_report,
+    validate_registered_model,
+)
 
 
 def test_trains_and_exports_model_with_mlflow(tmp_path, monkeypatch) -> None:
@@ -63,6 +67,11 @@ def test_trains_and_exports_model_with_mlflow(tmp_path, monkeypatch) -> None:
         tracking_uri=f"sqlite:///{mlflow_path}",
         git_sha=git_sha,
     )
+    evaluated_report = validate_evaluation_report(metrics_path)
+    registered_report = validate_registered_model(
+        metrics_path=metrics_path,
+        tracking_uri=f"sqlite:///{mlflow_path}",
+    )
 
     saved_report = json.loads(metrics_path.read_text(encoding="utf-8"))
     optimization_report = json.loads(optimization_path.read_text(encoding="utf-8"))
@@ -78,6 +87,8 @@ def test_trains_and_exports_model_with_mlflow(tmp_path, monkeypatch) -> None:
     assert onnx_path.exists()
     assert mlflow_path.exists()
     assert saved_report["mlflow_run_id"] == report["mlflow_run_id"]
+    assert evaluated_report["mlflow_run_id"] == report["mlflow_run_id"]
+    assert registered_report["mlflow_run_id"] == report["mlflow_run_id"]
     assert saved_report["dataset_version"] == "test-dataset-v1"
     assert saved_report["metrics"]["f1_macro"] == 1.0
     assert saved_report["registered_model_name"] == "hospital-triage-text-classifier"

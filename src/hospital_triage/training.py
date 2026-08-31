@@ -9,6 +9,7 @@ from pathlib import Path
 
 import joblib
 import pandas as pd
+from mlflow.tracking import MlflowClient
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 
@@ -289,6 +290,74 @@ def _validate_git_sha(git_sha: str) -> None:
         raise ValueError("git_sha deve ser um SHA Git completo de 40 caracteres.")
 
 
+def validate_evaluation_report(
+    metrics_path: str | Path = DEFAULT_METRICS_PATH,
+) -> dict[str, object]:
+    """Confirma que o relatório versionado atende aos gates do modelo."""
+    report = _load_training_report(metrics_path)
+    metrics = report.get("metrics")
+    optimization = report.get("optimization")
+    if not isinstance(metrics, dict) or not isinstance(optimization, dict):
+        raise ValueError("Relatório de treinamento incompleto.")
+
+    required_metrics = ("f1_macro", "urgent_recall")
+    if any(metric not in metrics for metric in required_metrics):
+        raise ValueError("Relatório sem as métricas de aprovação obrigatórias.")
+    _validate_model_metrics(
+        {metric: float(metrics[metric]) for metric in required_metrics}
+    )
+
+    comparison = optimization.get("comparison")
+    if not isinstance(comparison, dict):
+        raise ValueError("Relatório sem a comparação ONNX.")
+    if float(comparison.get("prediction_agreement", 0.0)) != 1.0:
+        raise ValueError("O relatório não comprova equivalência do modelo ONNX.")
+    return report
+
+
+def validate_registered_model(
+    metrics_path: str | Path = DEFAULT_METRICS_PATH,
+    tracking_uri: str = DEFAULT_TRACKING_URI,
+) -> dict[str, object]:
+    """Confirma que versão, alias, run e commit existem no MLflow Registry."""
+    report = _load_training_report(metrics_path)
+    required_fields = (
+        "registered_model_name",
+        "registered_model_version",
+        "model_alias",
+        "mlflow_run_id",
+        "git_sha",
+    )
+    if any(not report.get(field) for field in required_fields):
+        raise ValueError("Relatório sem identificação completa do modelo registrado.")
+
+    name = str(report["registered_model_name"])
+    version = str(report["registered_model_version"])
+    alias = str(report["model_alias"])
+    client = MlflowClient(tracking_uri=tracking_uri)
+    registered = client.get_model_version(name=name, version=version)
+    aliased = client.get_model_version_by_alias(name=name, alias=alias)
+
+    if registered.run_id != report["mlflow_run_id"]:
+        raise ValueError("A versão registrada aponta para outra execução do MLflow.")
+    if str(aliased.version) != version:
+        raise ValueError("O alias do modelo aponta para outra versão.")
+    if registered.tags.get("git_sha") != report["git_sha"]:
+        raise ValueError("A versão registrada não está ligada ao commit informado.")
+    return report
+
+
+def _load_training_report(metrics_path: str | Path) -> dict[str, object]:
+    """Carrega o relatório de treinamento com validação estrutural mínima."""
+    path = Path(metrics_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Relatório de treinamento ausente: {path}.")
+    report = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(report, dict):
+        raise ValueError("O relatório de treinamento deve ser um objeto JSON.")
+    return report
+
+
 def parse_args() -> argparse.Namespace:
     """Lê os caminhos usados pelo comando de treinamento."""
     parser = argparse.ArgumentParser(
@@ -322,12 +391,41 @@ def parse_args() -> argparse.Namespace:
         default=os.getenv("GITHUB_SHA", "local"),
         help="Commit associado à versão registrada no MLflow.",
     )
+    validation_mode = parser.add_mutually_exclusive_group()
+    validation_mode.add_argument(
+        "--validate-evaluation-only",
+        action="store_true",
+        help="Valida somente as métricas e a equivalência ONNX do relatório.",
+    )
+    validation_mode.add_argument(
+        "--validate-registration-only",
+        action="store_true",
+        help="Valida somente a versão registrada e seu alias no MLflow.",
+    )
     return parser.parse_args()
 
 
 def train_model_main() -> None:
     """Executa o treinamento e informa os artefatos produzidos."""
     args = parse_args()
+    if args.validate_evaluation_only:
+        report = validate_evaluation_report(args.metrics_output)
+        print(
+            f"Avaliação aprovada: F1 macro "
+            f"{report['metrics']['f1_macro']:.3f}."
+        )
+        return
+    if args.validate_registration_only:
+        report = validate_registered_model(
+            metrics_path=args.metrics_output,
+            tracking_uri=args.tracking_uri,
+        )
+        print(
+            f"Registro validado: {report['registered_model_name']} "
+            f"v{report['registered_model_version']} ({report['model_alias']})."
+        )
+        return
+
     report = train_and_export(
         database_path=args.database,
         model_path=args.model_output,
