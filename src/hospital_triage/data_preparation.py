@@ -14,6 +14,8 @@ from sklearn.model_selection import StratifiedGroupKFold
 
 from ml_prep_kit import DataValidator, SQLiteDataFrameStore
 
+from .constants import TARGET_ORDER
+
 # Contrato verificado no notebook 00. O hash fixa a versão inteira da fonte.
 DATASET_VERSION = "nhamcs-ed-2021-training-v1"
 SOURCE_SHA256 = (
@@ -40,7 +42,6 @@ TARGET_MAP = {
     4: "normal",
     5: "normal",
 }
-TARGET_ORDER = ("normal", "atencao", "urgente")
 RFV_COLUMNS = tuple(f"RFV{index}" for index in range(1, 6))
 
 # Regra: coluna final, sentinelas de ausência, mínimo, máximo e escala.

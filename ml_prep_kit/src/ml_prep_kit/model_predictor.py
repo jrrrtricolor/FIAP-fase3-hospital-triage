@@ -4,11 +4,6 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
 
-import joblib
-import mlflow
-import mlflow.pyfunc
-import mlflow.sklearn
-
 
 class _OnnxTextClassifier:
     """Adapta um classificador textual ONNX ao contrato Scikit-Learn."""
@@ -101,6 +96,10 @@ class ModelPredictor:
         wrapper Scikit-Learn ou modelo PyFunc para preservar o contrato de
         inferência.
         """
+        import mlflow
+        import mlflow.pyfunc
+        import mlflow.sklearn
+
         if tracking_uri:
             mlflow.set_tracking_uri(tracking_uri)
 
@@ -114,6 +113,8 @@ class ModelPredictor:
     @classmethod
     def from_joblib(cls, model_path: str | Path) -> "ModelPredictor":
         """Carrega um pipeline local serializado com Joblib."""
+        import joblib
+
         return cls(model=joblib.load(model_path))
 
     @classmethod
@@ -127,6 +128,8 @@ class ModelPredictor:
 
     def load_preprocessor(self, artifact_path: str | Path) -> None:
         """Carrega um preprocessador Joblib salvo localmente."""
+        import joblib
+
         self.preprocessor = joblib.load(artifact_path)
 
     def prepare_input(self, X: Any) -> Any:

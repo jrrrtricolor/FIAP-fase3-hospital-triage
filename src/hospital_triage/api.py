@@ -15,21 +15,15 @@ from ml_prep_kit import ModelPredictor
 
 from .config.api_logging_middleware import LoggingMiddleware
 from .config.logging_config import setup_api_logger
-from .data_preparation import TARGET_ORDER
+from .constants import TARGET_ORDER
 from .prometheus.metrics import (
     MODEL_INFO,
     PREDICTION_CONFIDENCE,
     PREDICTION_DURATION,
     PREDICTIONS_TOTAL,
 )
-from .training import (
-    DEFAULT_TRACKING_URI,
-    MODEL_ALIAS,
-    REGISTERED_MODEL_NAME,
-)
 
 MAX_TEXT_LENGTH = 5_000
-DEFAULT_MODEL_URI = f"models:/{REGISTERED_MODEL_NAME}@{MODEL_ALIAS}"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "model/hospital_triage_model.onnx"
 
@@ -61,30 +55,19 @@ class PredictionResponse(BaseModel):
 ModelLoader = Callable[[], tuple[ModelPredictor, str]]
 LOGGER = setup_api_logger()
 
-def load_model() -> tuple[ModelPredictor, str]:
-    """Carrega uma única vez o ONNX empacotado ou um modelo do MLflow."""
-    model_uri = os.getenv("MODEL_URI")
-    model_version = os.getenv("MODEL_VERSION", "onnx-bundled-v1")
-    if model_uri:
-        tracking_uri = os.getenv("MLFLOW_TRACKING_URI", DEFAULT_TRACKING_URI)
-        predictor = ModelPredictor.from_mlflow(
-            model_uri=model_uri,
-            tracking_uri=tracking_uri,
-        )
-        return predictor, model_version
 
+def load_model() -> tuple[ModelPredictor, str]:
+    """Carrega uma única vez o modelo ONNX empacotado."""
+    model_version = os.getenv("MODEL_VERSION", "onnx-bundled-v1")
     model_path = Path(os.getenv("MODEL_PATH", DEFAULT_MODEL_PATH))
     if not model_path.is_file():
         raise FileNotFoundError(f"Artefato de inferência ausente: {model_path}.")
-    if model_path.suffix == ".onnx":
-        predictor = ModelPredictor.from_onnx(
-            model_path,
-            classes=sorted(TARGET_ORDER),
-        )
-    elif model_path.suffix == ".joblib":
-        predictor = ModelPredictor.from_joblib(model_path)
-    else:
-        raise ValueError("MODEL_PATH deve apontar para .onnx ou .joblib.")
+    if model_path.suffix != ".onnx":
+        raise ValueError("MODEL_PATH deve apontar para um artefato .onnx.")
+    predictor = ModelPredictor.from_onnx(
+        model_path,
+        classes=sorted(TARGET_ORDER),
+    )
     return predictor, model_version
 
 

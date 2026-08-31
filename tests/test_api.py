@@ -96,6 +96,7 @@ def test_bundled_onnx_model_serves_real_prediction(monkeypatch) -> None:
         / "model/hospital_triage_model.onnx"
     )
     monkeypatch.delenv("MODEL_URI", raising=False)
+    monkeypatch.delenv("MODEL_VERSION", raising=False)
     monkeypatch.setenv("MODEL_PATH", str(model_path))
     real_predictor, model_version = load_model()
     real_app = create_app(

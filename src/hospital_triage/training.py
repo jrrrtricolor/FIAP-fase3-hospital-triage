@@ -20,7 +20,7 @@ from ml_prep_kit import (
     SQLiteDataFrameStore,
 )
 
-from .data_preparation import TARGET_ORDER
+from .constants import TARGET_ORDER
 
 MODEL_NAME = "tfidf-logistic-regression"
 EXPERIMENT_NAME = "hospital-triage-training"
@@ -298,7 +298,7 @@ def validate_evaluation_report(
     metrics = report.get("metrics")
     optimization = report.get("optimization")
     if not isinstance(metrics, dict) or not isinstance(optimization, dict):
-        raise ValueError("Relatório de treinamento incompleto.")
+        raise TypeError("Relatório de treinamento incompleto.")
 
     required_metrics = ("f1_macro", "urgent_recall")
     if any(metric not in metrics for metric in required_metrics):
@@ -309,7 +309,7 @@ def validate_evaluation_report(
 
     comparison = optimization.get("comparison")
     if not isinstance(comparison, dict):
-        raise ValueError("Relatório sem a comparação ONNX.")
+        raise TypeError("Relatório sem a comparação ONNX.")
     if float(comparison.get("prediction_agreement", 0.0)) != 1.0:
         raise ValueError("O relatório não comprova equivalência do modelo ONNX.")
     return report
@@ -354,7 +354,7 @@ def _load_training_report(metrics_path: str | Path) -> dict[str, object]:
         raise FileNotFoundError(f"Relatório de treinamento ausente: {path}.")
     report = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(report, dict):
-        raise ValueError("O relatório de treinamento deve ser um objeto JSON.")
+        raise TypeError("O relatório de treinamento deve ser um objeto JSON.")
     return report
 
 

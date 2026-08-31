@@ -156,9 +156,8 @@ resultados e tamanhos comparados. Consumo de memória ainda não foi medido.
 
 A imagem Docker copia o ONNX final e define `MODEL_PATH` explicitamente. A API
 carrega o modelo uma vez no lifespan e informa a versão por `/ready` e
-`POST /predict`. Também é possível definir `MODEL_URI` e
-`MLFLOW_TRACKING_URI` para carregar uma versão promovida no MLflow Registry,
-mas esse caminho não é necessário para executar a imagem autônoma.
+`POST /predict`. O MLflow permanece no fluxo batch de treinamento e registro;
+a imagem de inferência aceita somente o ONNX promovido e empacotado.
 
 O treinamento registra:
 

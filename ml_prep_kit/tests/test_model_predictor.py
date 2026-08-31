@@ -48,8 +48,8 @@ class ModelPredictorTest(unittest.TestCase):
         with self.assertRaisesRegex(AttributeError, "predict_proba"):
             predictor.predict_proba(["texto"])
 
-    @patch("ml_prep_kit.model_predictor.mlflow.sklearn.load_model")
-    @patch("ml_prep_kit.model_predictor.mlflow.set_tracking_uri")
+    @patch("mlflow.sklearn.load_model")
+    @patch("mlflow.set_tracking_uri")
     def test_from_mlflow_loads_sklearn_model(
         self,
         set_tracking_uri_mock,
@@ -70,7 +70,7 @@ class ModelPredictorTest(unittest.TestCase):
         )
         self.assertIs(predictor.model, loaded_model)
 
-    @patch("ml_prep_kit.model_predictor.joblib.load")
+    @patch("joblib.load")
     def test_load_preprocessor_uses_joblib(self, joblib_load_mock) -> None:
         loaded_preprocessor = Mock()
         joblib_load_mock.return_value = loaded_preprocessor

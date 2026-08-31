@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 import mlflow
-import mlflow.pytorch
 import mlflow.sklearn
 from mlflow.tracking import MlflowClient
 
@@ -99,13 +98,15 @@ class ExperimentTracker:
                     "ignore",
                     message="Saving scikit-learn models.*",
                 )
-                with redirect_stdout(io.StringIO()):
-                    with redirect_stderr(io.StringIO()):
-                        mlflow.sklearn.log_model(
-                            sk_model=model,
-                            name=model_name,
-                            registered_model_name=registered_model_name,
-                        )
+                with (
+                    redirect_stdout(io.StringIO()),
+                    redirect_stderr(io.StringIO()),
+                ):
+                    mlflow.sklearn.log_model(
+                        sk_model=model,
+                        name=model_name,
+                        registered_model_name=registered_model_name,
+                    )
 
             logger.info(
                 "Registro concluído no MLflow.",
@@ -141,6 +142,8 @@ class ExperimentTracker:
                 input_example=X_valid_ready[:5],
             )
         """
+        from mlflow import pytorch as mlflow_pytorch
+
         logger.info(
             "Registrando rede neural no MLflow.",
             extra={
@@ -163,15 +166,17 @@ class ExperimentTracker:
                     "ignore",
                     message="The given buffer is not writable.*",
                 )
-                with redirect_stdout(io.StringIO()):
-                    with redirect_stderr(io.StringIO()):
-                        mlflow.pytorch.log_model(
-                            pytorch_model=model,
-                            name=model_name,
-                            input_example=input_example,
-                            serialization_format="pt2",
-                            registered_model_name=registered_model_name,
-                        )
+                with (
+                    redirect_stdout(io.StringIO()),
+                    redirect_stderr(io.StringIO()),
+                ):
+                    mlflow_pytorch.log_model(
+                        pytorch_model=model,
+                        name=model_name,
+                        input_example=input_example,
+                        serialization_format="pt2",
+                        registered_model_name=registered_model_name,
+                    )
 
             logger.info(
                 "Rede neural registrada no MLflow.",
