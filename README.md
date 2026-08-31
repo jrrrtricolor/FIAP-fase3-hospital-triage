@@ -275,7 +275,7 @@ Instalação completa para dados, notebooks, DVC, otimização, PyTorch e testes
 
 ```bash
 poetry env use 3.12
-poetry install --with dev,notebooks,pipeline,optimization,training
+poetry install --with dev,notebooks,pipeline,training,pytorch
 ```
 
 Para executar somente a API com o artefato ONNX versionado:
