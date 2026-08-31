@@ -3,8 +3,8 @@ import uuid
 from collections.abc import Awaitable, Callable
 
 from fastapi import Request
-from starlette.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from ..prometheus.metrics import ERRORS_TOTAL
 from .logging_config import setup_api_logger
