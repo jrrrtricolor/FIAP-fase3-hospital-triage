@@ -58,9 +58,14 @@ def test_metrics_expose_prediction_observability() -> None:
 
     assert prediction_response.status_code == 200
     assert metrics_response.status_code == 200
+    assert (
+        'http_requests_total{handler="/predict",method="POST",status="2xx"}'
+        in metrics_response.text
+    )
     assert "total_de_predicoes_total" in metrics_response.text
     assert "duracao_da_predicao_segundos_count" in metrics_response.text
     assert "confianca_da_predicao_count" in metrics_response.text
+    assert 'modelo_info{version="test-v1"} 1.0' in metrics_response.text
 
 
 def test_unhandled_exception_increments_error_metric() -> None:

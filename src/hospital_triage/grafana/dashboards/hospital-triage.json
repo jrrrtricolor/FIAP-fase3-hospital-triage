@@ -42,13 +42,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(total_de_predicoes_total)",
-          "legendFormat": "Predições",
+          "expr": "sum(http_requests_total)",
+          "legendFormat": "Requisições",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Predições totais",
+      "title": "Requisições totais",
       "type": "stat"
     },
     {

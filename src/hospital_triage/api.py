@@ -17,6 +17,7 @@ from .config.api_logging_middleware import LoggingMiddleware
 from .config.logging_config import setup_api_logger
 from .data_preparation import TARGET_ORDER
 from .prometheus.metrics import (
+    MODEL_INFO,
     PREDICTION_CONFIDENCE,
     PREDICTION_DURATION,
     PREDICTIONS_TOTAL,
@@ -101,6 +102,7 @@ def create_app(
             loaded_predictor, loaded_version = model_loader()
             application.state.predictor = loaded_predictor
             application.state.model_version = loaded_version
+        MODEL_INFO.labels(version=application.state.model_version).set(1)
         yield
 
     application = FastAPI(
@@ -110,6 +112,8 @@ def create_app(
     )
     application.state.predictor = predictor
     application.state.model_version = model_version
+    if predictor is not None:
+        MODEL_INFO.labels(version=model_version).set(1)
     application.add_middleware(LoggingMiddleware)
     Instrumentator().instrument(application).expose(
         application,
