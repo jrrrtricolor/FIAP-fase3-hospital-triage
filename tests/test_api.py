@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from prometheus_client import REGISTRY
 
 from ml_prep_kit import ModelPredictor
 from src.hospital_triage.api import create_app, load_model
@@ -44,6 +45,43 @@ def test_predict_endpoint_validation_error() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_metrics_expose_prediction_observability() -> None:
+    """Expõe contagem, duração e confiança das predições ao Prometheus."""
+    prediction_response = client.post(
+        "/predict",
+        json={"clinical_text": "Severe chest pain."},
+    )
+
+    metrics_response = client.get("/metrics")
+
+    assert prediction_response.status_code == 200
+    assert metrics_response.status_code == 200
+    assert "total_de_predicoes_total" in metrics_response.text
+    assert "duracao_da_predicao_segundos_count" in metrics_response.text
+    assert "confianca_da_predicao_count" in metrics_response.text
+
+
+def test_unhandled_exception_increments_error_metric() -> None:
+    """Contabiliza falhas internas mesmo quando não há resposta da rota."""
+    exception_app = create_app(
+        predictor=predictor,
+        model_version="test-v1",
+        model_loader=None,
+    )
+
+    @exception_app.get("/failure")
+    def failure() -> None:
+        raise RuntimeError("falha simulada")
+
+    errors_before = REGISTRY.get_sample_value("total_de_erros_na_api_total") or 0
+    with TestClient(exception_app, raise_server_exceptions=False) as exception_client:
+        response = exception_client.get("/failure")
+    errors_after = REGISTRY.get_sample_value("total_de_erros_na_api_total") or 0
+
+    assert response.status_code == 500
+    assert errors_after == errors_before + 1
 
 
 def test_bundled_onnx_model_serves_real_prediction(monkeypatch) -> None:

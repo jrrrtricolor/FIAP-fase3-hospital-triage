@@ -16,12 +16,14 @@ class JsonFormatter(json.JsonFormatter):
         if not log_record.get("mensagem"):
             log_record["mensagem"] = record.getMessage()
 
-def setup_api_logger():
+
+def setup_api_logger() -> logging.Logger:
+    """Configura o logger estruturado uma única vez por processo."""
     logger = logging.getLogger("hospital_triage_api")
     logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = JsonFormatter()
-    handler.setFormatter(formatter)
-    logger.handlers = []
-    logger.addHandler(handler)
+    logger.propagate = False
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(JsonFormatter())
+        logger.addHandler(handler)
     return logger

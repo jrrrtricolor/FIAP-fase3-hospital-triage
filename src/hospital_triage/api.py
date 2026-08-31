@@ -12,17 +12,15 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, StringConstraints
 
 from ml_prep_kit import ModelPredictor
-from src.hospital_triage.config.api_logging_middleware import (
-    LoggingMiddleware,
-)
-from src.hospital_triage.config.logging_config import setup_api_logger
-from src.hospital_triage.prometheus.metrics import (
-    AVG_CONFIDENCE,
+
+from .config.api_logging_middleware import LoggingMiddleware
+from .config.logging_config import setup_api_logger
+from .data_preparation import TARGET_ORDER
+from .prometheus.metrics import (
+    PREDICTION_CONFIDENCE,
     PREDICTION_DURATION,
     PREDICTIONS_TOTAL,
 )
-
-from .data_preparation import TARGET_ORDER
 from .training import (
     DEFAULT_TRACKING_URI,
     MODEL_ALIAS,
@@ -114,9 +112,9 @@ def create_app(
     application.state.model_version = model_version
     application.add_middleware(LoggingMiddleware)
     Instrumentator().instrument(application).expose(
-        application, 
-        endpoint="/metrics", 
-        summary="Métricas de desempenho da API para Prometheus"
+        application,
+        endpoint="/metrics",
+        summary="Métricas de desempenho da API para Prometheus",
     )
 
     def require_predictor(request: Request) -> ModelPredictor:
@@ -175,7 +173,7 @@ def create_app(
 
         PREDICTION_DURATION.observe(inference_time_ms / 1_000)
         PREDICTIONS_TOTAL.inc()
-        AVG_CONFIDENCE.observe(max(probabilities.values()))
+        PREDICTION_CONFIDENCE.observe(max(probabilities.values()))
 
         return PredictionResponse(
             target=target,
