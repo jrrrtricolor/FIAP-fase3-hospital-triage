@@ -12,9 +12,10 @@
 | Classes | `normal`, `atencao`, `urgente` |
 | Métrica de seleção | Macro F1 |
 | Artefato servido | `model/hospital_triage_model.onnx` |
+| Versão servida | `onnx-nhamcs-2021-v1` |
 | SHA-256 do ONNX | `dec190039662b20dcfacf9b7583fa8b9c3c9e2ed50efce3c19be7fa08911a6f7` |
 | Tamanho do ONNX | 252.634 bytes |
-| Data desta versão | 29 de agosto de 2026 |
+| Data desta Model Card | 2 de setembro de 2026 |
 
 O modelo estima uma classe de prioridade a partir de texto clínico em inglês.
 Ele é um demonstrador acadêmico de apoio à triagem e não um dispositivo médico,
@@ -138,26 +139,34 @@ o mesmo processo, excluindo o carregamento dos modelos.
 
 | Medida por registro | Scikit-Learn | ONNX Runtime |
 |---|---:|---:|
-| Latência observada | 0,01860 ms | 0,01295 ms |
+| Latência observada | 0,15882 ms | 0,06740 ms |
 | Tamanho | 405.604 bytes | 252.634 bytes |
 
 Resultados:
 
 - concordância das classes previstas: `100%`;
-- ganho observado: `1,44x`;
+- ganho observado: `2,36x`;
 - redução do artefato: `37,71%`.
 
-O benchmark foi executado no ambiente local de desenvolvimento. Os números
-absolutos não devem ser extrapolados para produção; o relatório em
-[`model/onnx_benchmark.json`](../model/onnx_benchmark.json) registra os
-resultados e tamanhos comparados. Consumo de memória ainda não foi medido.
+O benchmark foi executado sobre todo o split de validação, no mesmo processo e
+ambiente, sem incluir o carregamento dos modelos. Ele registra a média por
+registro de uma passagem controlada. Os números absolutos não devem ser
+extrapolados para produção. Esta versão ainda não mede warm-up, múltiplas
+repetições, p50, p95, desvio-padrão ou memória. O resultado reproduzível está em
+[`model/onnx_benchmark.json`](../model/onnx_benchmark.json).
 
-## Inferência e versionamento
+## Operação e versionamento
 
 A imagem Docker copia o ONNX final e define `MODEL_PATH` explicitamente. A API
 carrega o modelo uma vez no lifespan e informa a versão por `/ready` e
 `POST /predict`. O MLflow permanece no fluxo batch de treinamento e registro;
-a imagem de inferência aceita somente o ONNX promovido e empacotado.
+a imagem de inferência aceita somente o ONNX promovido e empacotado. O endpoint
+`/metrics` expõe métricas técnicas para Prometheus e o dashboard Grafana é
+provisionado pelo Docker Compose.
+
+A DAG `hospital_triage` reutiliza os módulos do projeto para download,
+preparação, validação, treinamento, avaliação e validação do registro no MLflow.
+Treinamento e retreinamento são batch; apenas a inferência ocorre em tempo real.
 
 O treinamento registra:
 
@@ -201,16 +210,19 @@ O treinamento registra:
 - não sobrescrever silenciosamente o artefato de uma release;
 - comparar métricas por classe e não apenas acurácia;
 - bloquear promoção se macro F1 ou recall de `urgente` ficarem abaixo dos gates;
-- revisar esta Model Card após Airflow, observabilidade ou dataset mudarem.
+- revisar esta Model Card após qualquer mudança de dados, modelo ou contrato da API.
 
 ## Evidências
 
 - preparação: [`src/hospital_triage/data_preparation.py`](../src/hospital_triage/data_preparation.py);
 - treino e benchmark: [`src/hospital_triage/training.py`](../src/hospital_triage/training.py);
 - API: [`src/hospital_triage/api.py`](../src/hospital_triage/api.py);
-- métricas globais: [`model/mlflow_model_comparison.json`](../model/mlflow_model_comparison.json);
+- métricas de treinamento: [`model/training_metrics.json`](../model/training_metrics.json);
 - métricas por classe: [`notebooks/03_model_comparison_nhamcs_2021.ipynb`](../notebooks/03_model_comparison_nhamcs_2021.ipynb);
 - benchmark: [`model/onnx_benchmark.json`](../model/onnx_benchmark.json);
 - comparação de candidatos: [`model/mlflow_model_comparison.json`](../model/mlflow_model_comparison.json);
-- notebooks: [`notebooks/`](../notebooks/);
-- testes: [`tests/`](../tests/).
+- CI/CD: [`.github/workflows/ml-pipeline.yml`](../.github/workflows/ml-pipeline.yml);
+- Airflow: [`airflow/dags/hospital_triage_dag.py`](../airflow/dags/hospital_triage_dag.py);
+- monitoramento: [`docker-compose.yml`](../docker-compose.yml) e
+  [dashboard Grafana](../src/hospital_triage/grafana/dashboards/hospital-triage.json);
+- testes: [`tests/`](../tests/) e [`ml_prep_kit/tests/`](../ml_prep_kit/tests/).
