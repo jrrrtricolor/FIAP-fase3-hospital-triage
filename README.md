@@ -233,5 +233,5 @@ parâmetros, métricas, artefatos, versão do modelo e o alias `champion`.
 
 ## Equipe
 
-- Cássio
-- Júlia
+- Cassio Junior
+- Júlia Otranto Aulicino
