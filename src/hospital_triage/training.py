@@ -29,6 +29,9 @@ MODEL_ALIAS = "champion"
 RANDOM_STATE = 42
 MINIMUM_F1_MACRO = 0.55
 MINIMUM_URGENT_RECALL = 0.55
+MINIMUM_ONNX_SPEEDUP = 1.0
+BENCHMARK_WARMUP_RUNS = 5
+BENCHMARK_MEASURED_RUNS = 30
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -122,8 +125,8 @@ def train_and_export(
     )
     if comparison["prediction_agreement"] != 1.0:
         raise ValueError("O modelo ONNX alterou as classes previstas.")
-    if comparison["speedup"] <= 1 and comparison["size_reduction_percent"] <= 0:
-        raise ValueError("O modelo ONNX não apresentou ganho.")
+    if comparison["speedup"] <= MINIMUM_ONNX_SPEEDUP:
+        raise ValueError("O modelo ONNX não reduziu a latência de inferência.")
     metrics.update(
         {
             "latency_ms_per_record": comparison["original_latency_ms_per_record"],
@@ -209,7 +212,7 @@ def _benchmark_onnx(
     texts: list[str],
     model_path: Path,
     onnx_path: Path,
-) -> dict[str, float | int]:
+) -> dict[str, float | int | str]:
     """Exporta o ONNX e compara latência, predições e tamanho."""
     import numpy as np
     import onnxruntime as ort
@@ -230,21 +233,51 @@ def _benchmark_onnx(
         providers=["CPUExecutionProvider"],
     )
     input_data = np.asarray(texts, dtype=object).reshape(-1, 1)
+    label_output = session.get_outputs()[0].name
 
-    started_at = time.perf_counter()
-    original_predictions = np.asarray(model.predict(texts))
-    original_seconds = time.perf_counter() - started_at
+    def predict_original():
+        return np.asarray(model.predict(texts))
 
-    started_at = time.perf_counter()
-    onnx_predictions = np.asarray(session.run(None, {"clinical_text": input_data})[0])
-    onnx_seconds = time.perf_counter() - started_at
+    def predict_onnx():
+        return np.asarray(
+            session.run([label_output], {"clinical_text": input_data})[0]
+        )
+
+    for _ in range(BENCHMARK_WARMUP_RUNS):
+        predict_original()
+        predict_onnx()
+
+    samples = {"original": [], "onnx": []}
+    operations = {"original": predict_original, "onnx": predict_onnx}
+    for run_index in range(BENCHMARK_MEASURED_RUNS):
+        order = ("original", "onnx") if run_index % 2 == 0 else ("onnx", "original")
+        for name in order:
+            started_at = time.perf_counter()
+            operations[name]()
+            samples[name].append(time.perf_counter() - started_at)
+
+    original_predictions = predict_original()
+    onnx_predictions = predict_onnx()
+    original_seconds = float(np.median(samples["original"]))
+    onnx_seconds = float(np.median(samples["onnx"]))
+    milliseconds_per_record = 1_000 / len(texts)
     original_size, onnx_size = model_path.stat().st_size, onnx_path.stat().st_size
     return {
+        "method": "mediana de execuções alternadas após warm-up",
+        "warmup_runs": BENCHMARK_WARMUP_RUNS,
+        "measured_runs": BENCHMARK_MEASURED_RUNS,
+        "compared_output": "predicted_classes",
         "prediction_agreement": float(
             np.mean(original_predictions == onnx_predictions)
         ),
-        "original_latency_ms_per_record": (original_seconds * 1_000 / len(texts)),
-        "onnx_latency_ms_per_record": onnx_seconds * 1_000 / len(texts),
+        "original_latency_ms_per_record": original_seconds * milliseconds_per_record,
+        "onnx_latency_ms_per_record": onnx_seconds * milliseconds_per_record,
+        "original_latency_p95_ms_per_record": float(
+            np.percentile(samples["original"], 95) * milliseconds_per_record
+        ),
+        "onnx_latency_p95_ms_per_record": float(
+            np.percentile(samples["onnx"], 95) * milliseconds_per_record
+        ),
         "speedup": original_seconds / onnx_seconds,
         "original_size_bytes": original_size,
         "onnx_size_bytes": onnx_size,
@@ -312,6 +345,10 @@ def validate_evaluation_report(
         raise TypeError("Relatório sem a comparação ONNX.")
     if float(comparison.get("prediction_agreement", 0.0)) != 1.0:
         raise ValueError("O relatório não comprova equivalência do modelo ONNX.")
+    if int(comparison.get("measured_runs", 0)) < BENCHMARK_MEASURED_RUNS:
+        raise ValueError("O relatório ONNX não possui repetições suficientes.")
+    if float(comparison.get("speedup", 0.0)) <= MINIMUM_ONNX_SPEEDUP:
+        raise ValueError("O relatório ONNX não comprova redução de latência.")
     return report
 
 
