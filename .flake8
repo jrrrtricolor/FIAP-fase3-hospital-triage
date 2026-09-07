@@ -1,0 +1,15 @@
+[flake8]
+exclude =
+    .git,
+    .mypy_cache,
+    .pytest_cache,
+    .ruff_cache,
+    .venv,
+    __pycache__,
+    build,
+    dist,
+    mlruns,
+    vev,
+    venv
+per-file-ignores =
+    ml_prep_kit/__init__.py:E402

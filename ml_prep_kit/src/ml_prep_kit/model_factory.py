@@ -215,4 +215,7 @@ class ModelFactory:
 
     def _should_apply_random_state(self, model_name: str) -> bool:
         """Indica se o modelo deve receber random_state automaticamente."""
-        return self.random_state is not None and model_name in self.RANDOM_STATE_MODELS
+        return (
+            self.random_state is not None
+            and model_name in self.RANDOM_STATE_MODELS
+        )

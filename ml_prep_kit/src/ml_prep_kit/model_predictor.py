@@ -1,12 +1,61 @@
 """Fachada reutilizável para preparação e predição de modelos."""
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
 
-import joblib
-import mlflow
-import mlflow.pyfunc
-import mlflow.sklearn
+
+class _OnnxTextClassifier:
+    """Adapta um classificador textual ONNX ao contrato Scikit-Learn."""
+
+    def __init__(self, model_path: str | Path, classes: Sequence[str]) -> None:
+        import numpy as np
+        import onnxruntime as ort
+
+        self._numpy = np
+        self._session = ort.InferenceSession(
+            str(model_path),
+            providers=["CPUExecutionProvider"],
+        )
+        inputs = self._session.get_inputs()
+        outputs = self._session.get_outputs()
+        if len(inputs) != 1 or len(outputs) < 2:
+            raise ValueError("O modelo ONNX não possui o contrato esperado.")
+
+        self._input_name = inputs[0].name
+        self._label_output = outputs[0].name
+        self._probability_output = outputs[1].name
+        self.classes_ = np.asarray(list(classes), dtype=object)
+
+    def _prepare_input(self, texts: Sequence[str]) -> dict[str, Any]:
+        if isinstance(texts, str):
+            raise TypeError("A entrada deve ser uma coleção de textos.")
+        materialized = list(texts)
+        if not materialized:
+            raise ValueError("A entrada deve possuir pelo menos um texto.")
+        return {
+            self._input_name: self._numpy.asarray(
+                materialized,
+                dtype=object,
+            ).reshape(-1, 1)
+        }
+
+    def predict(self, texts: Sequence[str]) -> Any:
+        """Retorna as classes calculadas pelo ONNX Runtime."""
+        return self._session.run(
+            [self._label_output],
+            self._prepare_input(texts),
+        )[0]
+
+    def predict_proba(self, texts: Sequence[str]) -> Any:
+        """Retorna uma probabilidade por classe e texto."""
+        probabilities = self._session.run(
+            [self._probability_output],
+            self._prepare_input(texts),
+        )[0]
+        if probabilities.shape[1] != len(self.classes_):
+            raise ValueError("As classes não correspondem à saída ONNX.")
+        return probabilities
 
 
 class ModelPredictor:
@@ -41,11 +90,16 @@ class ModelPredictor:
     ) -> "ModelPredictor":
         """Carrega um modelo por URI do MLflow.
 
-        ``model_uri`` aceita URIs de runs e do Model Registry, incluindo aliases
-        como ``models:/hospital_triage_text_classifier@champion``. Modelos
-        PyTorch com tokenização própria devem ser registrados como wrapper
-        Scikit-Learn ou modelo PyFunc para preservar o contrato de inferência.
+        ``model_uri`` aceita URIs de runs e do Model Registry, incluindo
+        aliases como ``models:/hospital_triage_text_classifier@champion``.
+        Modelos PyTorch com tokenização própria devem ser registrados como
+        wrapper Scikit-Learn ou modelo PyFunc para preservar o contrato de
+        inferência.
         """
+        import mlflow
+        import mlflow.pyfunc
+        import mlflow.sklearn
+
         if tracking_uri:
             mlflow.set_tracking_uri(tracking_uri)
 
@@ -56,8 +110,26 @@ class ModelPredictor:
         model = loaders[flavor](model_uri)
         return cls(model=model, preprocessor=preprocessor)
 
+    @classmethod
+    def from_joblib(cls, model_path: str | Path) -> "ModelPredictor":
+        """Carrega um pipeline local serializado com Joblib."""
+        import joblib
+
+        return cls(model=joblib.load(model_path))
+
+    @classmethod
+    def from_onnx(
+        cls,
+        model_path: str | Path,
+        classes: Sequence[str],
+    ) -> "ModelPredictor":
+        """Carrega um classificador textual otimizado para ONNX Runtime."""
+        return cls(model=_OnnxTextClassifier(model_path, classes))
+
     def load_preprocessor(self, artifact_path: str | Path) -> None:
         """Carrega um preprocessador Joblib salvo localmente."""
+        import joblib
+
         self.preprocessor = joblib.load(artifact_path)
 
     def prepare_input(self, X: Any) -> Any:
@@ -80,7 +152,9 @@ class ModelPredictor:
         model = self._require_model()
 
         if not hasattr(model, "predict_proba"):
-            raise AttributeError("O modelo carregado não implementa predict_proba().")
+            raise AttributeError(
+                "O modelo carregado não implementa predict_proba()."
+            )
 
         return model.predict_proba(self.prepare_input(X))
 

@@ -43,7 +43,10 @@ class TestModelEvaluator(unittest.TestCase):
 
         self.assertIn("f1_macro", metrics)
         self.assertIn("f1_weighted", metrics)
-        self.assertEqual(set(class_metrics["class"]), {"normal", "atencao", "urgente"})
+        self.assertEqual(
+            set(class_metrics["class"]),
+            {"normal", "atencao", "urgente"},
+        )
         self.assertEqual(
             set(class_metrics.columns),
             {"class", "precision", "recall", "f1", "support"},

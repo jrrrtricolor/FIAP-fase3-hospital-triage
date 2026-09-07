@@ -36,7 +36,8 @@ htmlcov/
 
 # IDEs e editores
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 *.swp
 *.swo
 
@@ -59,6 +60,8 @@ data/**/*.parquet
 data/**/*.feather
 data/**/*.zip
 data/**/*.gz
+data/**/*.dta
+data/raw/**/*.txt
 *.db
 *.db-journal
 *.sqlite
@@ -71,6 +74,10 @@ model/**/*.pickle
 model/**/*.pt
 model/**/*.pth
 model/**/*.onnx
+!model/hospital_triage_model.onnx
+
+# Arquivo residual criado por algumas versões do ONNX Runtime.
+*.ses
 
 # MLflow
 mlruns/

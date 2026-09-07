@@ -1,0 +1,44 @@
+name: CI - Dados e treinamento
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# O pipeline apenas lê o repositório. A publicação será adicionada depois.
+permissions:
+  contents: read
+
+jobs:
+  ml-pipeline:
+    # SHA imutável da versão v1.0.1 do template compartilhado.
+    uses: jrrrtricolor/fiap-ml-ci-templates/.github/workflows/ml-pipeline.yml@d2e0d7b2df961eda4c639a3d66715bba2e3639da
+    with:
+      runner: ubuntu-24.04
+      python-version: "3.12"
+      dependency-file: requirements.txt
+
+      # Somente comandos e caminhos específicos deste projeto ficam aqui.
+      install-command: python -m pip install -r requirements.txt
+      lint-command: ruff check src/hospital_triage tests
+      test-command: python -m pytest tests ml_prep_kit/tests -v
+      prepare-command: |
+        python data/download_dataset.py
+        python -m src.hospital_triage.data_preparation
+      validate-data-command: python -m src.hospital_triage.data_preparation --validate-only
+      train-command: python -m src.hospital_triage.training --git-sha "$GITHUB_SHA"
+
+      training-data-path: data/processed/training_data.db
+      training-data-directory: data/processed
+      model-artifact-paths: |
+        model/hospital_triage_model.joblib
+        model/hospital_triage_model.onnx
+        model/training_metrics.json
+        model/onnx_benchmark.json
+
+      build-docker: true
+      dockerfile: Dockerfile
+      docker-context: .
+      image-name: hospital-triage

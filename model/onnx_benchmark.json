@@ -1,0 +1,17 @@
+{
+  "technique": "ONNX Runtime",
+  "dataset_version": "nhamcs-ed-2021-training-v1",
+  "git_sha": "1c5230650ee64efb823185efdf98956de84a39c9",
+  "validation_rows": 1573,
+  "f1_macro": 0.5582144642686065,
+  "urgent_recall": 0.5780141843971631,
+  "comparison": {
+    "prediction_agreement": 1.0,
+    "original_latency_ms_per_record": 0.15882211887756942,
+    "onnx_latency_ms_per_record": 0.06740391926236927,
+    "speedup": 2.3562742436290014,
+    "original_size_bytes": 405604,
+    "onnx_size_bytes": 252634,
+    "size_reduction_percent": 37.71412510724746
+  }
+}
