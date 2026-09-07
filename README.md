@@ -179,7 +179,7 @@ o candidato PyTorch em macro F1 na mesma divisão de dados.
 | Macro F1 | 0,5582 |
 | Recall de `urgente` | 0,5780 |
 | Concordância Scikit-Learn × ONNX | 100% |
-| Ganho de latência ONNX registrado | 2,36x |
+| Ganho mediano de latência ONNX | 1,88x |
 | Redução do artefato | 37,71% |
 
 Resultados completos: [métricas de treinamento](model/training_metrics.json),
@@ -198,7 +198,7 @@ Pré-requisitos: Python 3.12 e Poetry 2.4+.
 poetry env use 3.12
 poetry install --with dev,training,pytorch
 poetry run ruff check src/hospital_triage tests
-poetry run pytest tests ml_prep_kit/tests -v
+poetry run python -m pytest tests ml_prep_kit/tests -v
 ```
 
 Reproduzir dados, treinamento, ONNX e registro no MLflow:

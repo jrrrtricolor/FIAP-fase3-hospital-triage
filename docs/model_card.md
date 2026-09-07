@@ -15,7 +15,7 @@
 | Versão servida | `onnx-nhamcs-2021-v1` |
 | SHA-256 do ONNX | `dec190039662b20dcfacf9b7583fa8b9c3c9e2ed50efce3c19be7fa08911a6f7` |
 | Tamanho do ONNX | 252.634 bytes |
-| Data desta Model Card | 2 de setembro de 2026 |
+| Data desta Model Card | 7 de setembro de 2026 |
 
 O modelo estima uma classe de prioridade a partir de texto clínico em inglês.
 Ele é um demonstrador acadêmico de apoio à triagem e não um dispositivo médico,
@@ -139,20 +139,22 @@ o mesmo processo, excluindo o carregamento dos modelos.
 
 | Medida por registro | Scikit-Learn | ONNX Runtime |
 |---|---:|---:|
-| Latência observada | 0,15882 ms | 0,06740 ms |
+| Latência mediana | 0,01827 ms | 0,00971 ms |
+| Latência p95 | 0,01900 ms | 0,01015 ms |
 | Tamanho | 405.604 bytes | 252.634 bytes |
 
 Resultados:
 
 - concordância das classes previstas: `100%`;
-- ganho observado: `2,36x`;
+- ganho mediano observado: `1,88x`;
 - redução do artefato: `37,71%`.
 
 O benchmark foi executado sobre todo o split de validação, no mesmo processo e
-ambiente, sem incluir o carregamento dos modelos. Ele registra a média por
-registro de uma passagem controlada. Os números absolutos não devem ser
-extrapolados para produção. Esta versão ainda não mede warm-up, múltiplas
-repetições, p50, p95, desvio-padrão ou memória. O resultado reproduzível está em
+ambiente, sem incluir o carregamento dos modelos. Após cinco execuções de
+warm-up, foram realizadas 30 medições em ordem alternada para cada formato. A
+mediana é a medida principal e o p95 também é registrado. A comparação mede a
+mesma saída de classes nos dois formatos. Os números absolutos não devem ser
+extrapolados para produção. O resultado reproduzível está em
 [`model/onnx_benchmark.json`](../model/onnx_benchmark.json).
 
 ## Operação e versionamento
