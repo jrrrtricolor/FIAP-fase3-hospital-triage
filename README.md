@@ -15,7 +15,7 @@ inglês e retorna uma das classes `normal`, `atencao` ou `urgente`.
 | Repositório público | [github.com/jrrrtricolor/FIAP-fase3-hospital-triage](https://github.com/jrrrtricolor/FIAP-fase3-hospital-triage) |
 | Branch da entrega | [`main`](https://github.com/jrrrtricolor/FIAP-fase3-hospital-triage/tree/main) |
 | CI/CD | [GitHub Actions](https://github.com/jrrrtricolor/FIAP-fase3-hospital-triage/actions/workflows/ml-pipeline.yml) |
-| Vídeo STAR | **PENDENTE — inserir URL pública antes da entrega** |
+| Vídeo STAR | [YouTube](https://www.youtube.com/watch?v=A1gbEGdDZ2k) |
 | Model Card | [docs/model_card.md](docs/model_card.md) |
 
 ## Roteiro do avaliador
@@ -29,6 +29,7 @@ Airflow pode levar alguns minutos e consumir alguns gigabytes em disco.
 git clone https://github.com/jrrrtricolor/FIAP-fase3-hospital-triage.git
 cd FIAP-fase3-hospital-triage
 git switch main
+echo -e "AIRFLOW_UID=$(id -u)" > .env
 docker compose up --build -d
 docker compose ps
 ```
@@ -120,7 +121,7 @@ docker compose down
 | Airflow | Atendido | [DAG](airflow/dags/hospital_triage_dag.py) e [Dockerfile do Airflow](Dockerfile.airflow) |
 | Monitoramento | Atendido | [Compose](docker-compose.yml), [Prometheus](src/hospital_triage/prometheus/prometheus.yml) e [dashboard Grafana](src/hospital_triage/grafana/dashboards/hospital-triage.json) |
 | Documentação | Atendido | este README, decisão de nuvem e [Model Card](docs/model_card.md) |
-| Vídeo STAR | Pendente | inserir URL pública na seção Entrega |
+| Vídeo STAR | Atendido | [YouTube](https://www.youtube.com/watch?v=A1gbEGdDZ2k) |
 
 ## Arquitetura
 
